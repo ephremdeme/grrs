@@ -1,11 +1,16 @@
 use std::error::Error;
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-#[derive(Debug)]
 pub struct CustomError(pub String);
+
+impl Debug for CustomError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 impl Display for CustomError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
