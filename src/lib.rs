@@ -15,16 +15,40 @@ impl Display for CustomError {
 
 impl Error for CustomError {}
 
-pub fn search_file(pattern: &str, path: &Path) -> Result<Vec<String>, CustomError> {
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SearchOptions {
+    pub case_insensitive: bool,
+    pub invert_match: bool,
+}
+
+pub fn search_file(pattern: &str, path: &Path, options: SearchOptions) -> Result<Vec<String>, CustomError> {
     let file = File::open(path)
         .map_err(|err| CustomError(format!("Error reading `{}`: {}", path.display(), err)))?;
     let reader = BufReader::new(file);
     let mut matches = Vec::new();
+    let normalized_pattern = options
+        .case_insensitive
+        .then(|| pattern.to_lowercase());
 
     for (idx, line) in reader.lines().enumerate() {
         let content = line
             .map_err(|err| CustomError(format!("Error reading `{}`: {}", path.display(), err)))?;
-        if content.contains(pattern) {
+        let is_match = if options.case_insensitive {
+            let needle = normalized_pattern
+                .as_deref()
+                .expect("lowercased pattern available when option set");
+            content.to_lowercase().contains(needle)
+        } else {
+            content.contains(pattern)
+        };
+
+        let should_include = if options.invert_match {
+            !is_match
+        } else {
+            is_match
+        };
+
+        if should_include {
             matches.push(format!("{}: {}", idx + 1, content));
         }
     }
